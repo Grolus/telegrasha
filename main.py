@@ -7,6 +7,7 @@ import re
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.types.message import ContentType
+from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram import F
 from dp import dp
 from subject import ALL_SUBJECTS, GROOPED_SUBJECTS, Homework
@@ -141,7 +142,8 @@ async def echo(msg: types.Message):
 """
 async def main() -> None:
     # Initialize Bot instance with a default parse mode which will be passed to all API calls
-    bot = Bot(token=config.arkadiy_tg_token)
+    session = AiohttpSession(proxy="http://proxy.server:3128")
+    bot = Bot(token=config.arkadiy_tg_token, session=session)
     # And the run events dispatching
     await bot.send_message(1122505805, f'Я запустился ({time.ctime()})')
     await dp.start_polling(bot)
