@@ -71,6 +71,7 @@ f'''Не понял, какая группа предмета {subject.name_ru} 
     else:
         hw_text_words = text_words[:-2]
     hw_text = ' '.join(hw_text_words)
+    hw_text = hw_text.strip()
     if hw_text.startswith('-'): hw_text[1:]
 
     # time compile
