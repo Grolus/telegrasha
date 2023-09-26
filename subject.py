@@ -1,6 +1,6 @@
 import os
 import json
-
+from typing import Sequence 
 
 HW_STORAGE_PATH = 'data/homework/'
 
@@ -12,33 +12,13 @@ class Subject():
         self.aliases = aliases
         self.weekdays = weekdays
         self.is_grouped = isinstance(weekdays, tuple)
-    def load(self, week, weekday, group=''):
+    def load(self, week, weekday, group: int=''):
         try:
             with open(f'{HW_STORAGE_PATH}{week}/{weekday}/{self.name_eng}{group if group else ""}.json', 'r') as file:
                 loaded = json.load(file)
                 return Homework(SUBJECTS_ENGNAME_DICT[loaded['subject_name']], loaded['text'], loaded['sender'], loaded['attachments'])
         except:
             return False
-
-class Homework():
-    def __init__(self, subject: Subject, text: str, sender: str, attachment: str=''):
-        self.subject = subject
-        self.text = text
-        self.sender = sender
-        self.attachment = attachment
-        
-    def save(self, week, weekday, group=''):
-        if str(week) not in os.listdir(HW_STORAGE_PATH):
-            os.mkdir(f'{HW_STORAGE_PATH}{week}')
-        if str(weekday) not in os.listdir(f'{HW_STORAGE_PATH}{week}'):
-            os.mkdir(f'{HW_STORAGE_PATH}{week}/{weekday}')
-        with open(f'{HW_STORAGE_PATH}{week}/{weekday}/{self.subject.name_eng}{group if group else ""}.json', 'w') as file:
-            _dict = {'subject_name': self.subject.name_eng, 'text': self.text, 'sender': self.sender, 'attachments': self.attachment}
-            json.dump(_dict, file)
-        return True
-
-    
-
 
 
 ALL_SUBJECTS = (
@@ -64,4 +44,53 @@ ALL_SUBJECTS = (
     )
 
 SUBJECTS_ENGNAME_DICT = {s.name_eng : s for s in ALL_SUBJECTS}
+SUBJECTS_RUNAME_DICT = {s.name_ru : s for s in ALL_SUBJECTS}
 GROOPED_SUBJECTS = [s for s in ALL_SUBJECTS if s.is_grouped]
+
+
+class Homework():
+    def __init__(self, subject: Subject, text: str, sender: str, attachment: str=''):
+        self.subject = subject
+        self.text = text
+        self.sender = sender
+        self.attachment = attachment
+        
+    def save(self, week, weekday, group=''):
+        if str(week) not in os.listdir(HW_STORAGE_PATH):
+            os.mkdir(f'{HW_STORAGE_PATH}{week}')
+        if str(weekday) not in os.listdir(f'{HW_STORAGE_PATH}{week}'):
+            os.mkdir(f'{HW_STORAGE_PATH}{week}/{weekday}')
+        with open(f'{HW_STORAGE_PATH}{week}/{weekday}/{self.subject.name_eng}{group if group else ""}.json', 'w') as file:
+            _dict = {'subject_name': self.subject.name_eng, 'text': self.text, 'sender': self.sender, 'attachments': self.attachment}
+            json.dump(_dict, file)
+        return True
+
+def _subject_identify(obj: Subject | str | Sequence) -> Subject | tuple[Subject]:
+    if isinstance(obj, Subject):
+        return obj
+    elif subject := SUBJECTS_ENGNAME_DICT.get(obj):
+        return subject
+    elif subject := SUBJECTS_RUNAME_DICT.get(obj):
+        return subject
+    elif isinstance(obj, Sequence):
+         return tuple(_subject_identify(s) for s in obj)
+    raise ValueError(f'All of subjects must me Subject instance or valid subject name (error: {obj})')
+
+class Timetable():
+    def __init__(self, weekday: int, *subjects: Subject | str):
+        self.weekday = weekday
+        self.subjects = []
+        for s in subjects:
+            self.subjects.append(_subject_identify(s))
+        #print(f'Registered timetable:\n    {", ".join([s.name_ru if isinstance(s, Subject) else f"{s[0].name_ru}/{s[1].name_ru}" for s in self.subjects])}')
+
+ALL_TIMETABLES = (
+    Timetable(0, 'Классный час', 'География', 'История', 'Немецкий язык', 'Алгебра', 'Физика', ('ИКТ', 'Английский язык')),
+    Timetable(1, 'algebra', ('english', 'english'), 'chemistry', 'socienty', 'russian', 'algebra'),
+    Timetable(2, 'biology', 'algebra', 'physics', 'russian', 'physculture', 'literature', ('english', 'informatics')),
+    Timetable(3, 'biology', 'history', 'geometry', 'technology', 'geometry', 'physculture', 'russian'),
+    Timetable(4, 'geography', 'projects', 'obzh', 'chemistry', 'russian', 'literature')
+)
+
+
+

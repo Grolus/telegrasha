@@ -1,4 +1,6 @@
 
+import time
+
 
 def wd_up(wd: int, up: int, w: int | None=None): 
     wd += up
@@ -17,7 +19,15 @@ def word_to_group(word):
     return 0
 
 def wd_calc(now_week: int, now_weekday:int, weekdays: list[int], dw: int=1):
+    """
+    Принимает нынешние неделю и день недели и расчитывает, какой день недели из списка будет следующим после нынешнего
+    Возвращает неделю и день недели
+    """
     new_week, new_weekday = wd_up(now_weekday, dw, now_week)
     while new_weekday not in weekdays:
         new_week, new_weekday = wd_up(new_weekday, 1, new_week)
     return new_week, new_weekday
+
+def get_now_week_weekday():
+    t = time.gmtime(time.time())
+    return t.tm_yday // 7 + 1, t.tm_wday

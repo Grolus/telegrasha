@@ -3,14 +3,16 @@ import logging
 import asyncio
 import sys
 import time
+import os
 import re
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.types.message import ContentType
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram import F
+from typing import Sequence
 from dp import dp
-from subject import ALL_SUBJECTS, GROOPED_SUBJECTS, Homework
+from subject import ALL_SUBJECTS, GROOPED_SUBJECTS, ALL_TIMETABLES, Homework
 from utils import *
 
 # log
@@ -19,13 +21,16 @@ logging.basicConfig(level=logging.INFO)
 
 IS_W_FOR_GROUP = False
 WEEKDAYS_GEN = ['понедельник', 'вторник', 'среду', 'четверг', 'пятницу', 'субботу', 'воскресение']
+WEEKDAYS_CALLS = ['понед', 'вторник', 'сред', 'четверг', 'пятниц', 'суббот', 'воскр']
+IS_ON_SERVER = 'Grolus' in os.path.abspath(__file__)
+
+
 
 
 @dp.message(F.text == 'аркаша?')
 async def self_call(msg: types.Message):
     logging.info('Self call detected')
     await msg.answer(f'Я тут, {msg.from_user.full_name}')
-
 
 hw_set_regex = r'^[пП]о .+|.+ [пП]о \S+(?: [12] групп?[аые])$'
 @dp.message(F.text.regexp(hw_set_regex))
@@ -66,6 +71,7 @@ f'''Не понял, какая группа предмета {subject.name_ru} 
             return
 
     # text compile
+    text_words = msg.text.split()
     if text.startswith('по '):
         hw_text_words = text_words[4:] if is_grooped_in_msg else text_words[2:] 
     else:
@@ -75,8 +81,7 @@ f'''Не понял, какая группа предмета {subject.name_ru} 
     if hw_text.startswith('-'): hw_text[1:]
 
     # time compile
-    now_weekday = msg.date.weekday()
-    now_week = time.gmtime(msg.date.toordinal()).tm_yday // 7 + 1
+    now_week, now_weekday = get_now_week_weekday()
     new_week, new_weekday = wd_calc(now_week, now_weekday, subject.weekdays[weekdays_key] if subject.is_grouped else subject.weekdays)
 
     # homework saving
@@ -86,10 +91,9 @@ f'''Не понял, какая группа предмета {subject.name_ru} 
         return
     await msg.answer(f'Сохранил задание по {subject.name_ru}{f" ({group} группа)" if group else ""}' + \
                      f' на {WEEKDAYS_GEN[new_weekday]}{" следующей недели" if new_week > now_week else ""}' + \
-                     f' ({hw_text}). Спасибо')
+                     f' [{hw_text}] Спасибо')
 
-
-hw_request_regex = r'[Чч]то (?:по |на ).*\?$'
+hw_request_regex = r'[Чч]то (?:по|на) .*\?$'
 @dp.message(F.text.regexp(hw_request_regex))
 @dp.edited_message(F.text.regexp(hw_request_regex))
 async def homework_request(msg: types.Message):
@@ -123,28 +127,67 @@ f'''Не понял, какая группа предмета {subject.name_ru} 
             return
 
     # time compile
-    now_weekday = msg.date.weekday()
-    now_week = time.gmtime(msg.date.toordinal()).tm_yday // 7 + 1
+    now_week, now_weekday = get_now_week_weekday()
     new_week, new_weekday = wd_calc(now_week, now_weekday, subject.weekdays[weekdays_key] if subject.is_grouped else subject.weekdays)
     
     # homework loading 
     if not (loaded_homework := subject.load(new_week, new_weekday, group)):
         await msg.answer(f'Не найдено задания по {subject.name_ru}{f" ({group} группа)" if group else ""}.')
         return
-    await msg.answer(f'Задание по {subject.name_ru}' +\
+    await msg.answer(f'Задание по {subject.name_ru}{f" ({group} группа)" if group else ""}' +\
                      f' на {WEEKDAYS_GEN[new_weekday]}{" следующей недели" if new_week > now_week else ""}:\n' +\
                      f'{loaded_homework.text} (отправил(а): {loaded_homework.sender})')
-"""
-# echo
-@dp.message()
-async def echo(msg: types.Message):
-    logging.info('Echo answered')
-    await msg.answer(f'{msg.text}')
-"""
+
+hw_full_request_regex = r'[Чч]то задали на .+\?$'
+@dp.message(F.text.regexp(hw_full_request_regex))
+async def full_homework_request(msg: types.Message):
+    text = msg.text.lower()
+    text_words = text.split()
+
+    # time compile
+    weekday = None
+    for i, call in enumerate(WEEKDAYS_CALLS):
+        if call in text:
+            weekday = i
+            break
+    now_week, now_weekday = get_now_week_weekday()
+    if weekday is None:
+        if 'сегодня' in text:
+            weekday = now_weekday
+        elif 'завтра' in text:
+            weekday = wd_up(now_weekday, 1)
+        else:
+            await msg.answer(f'Чтобы узнать дз на весь день, напишите "что задали на [день недели]?"')
+            return
+    if weekday > 4:
+        await msg.answer(f'Очень смешно, но у нас пятидневка')
+        return
+    week = wd_calc(now_week, now_weekday, [weekday])[0]
+
+    # answer compile
+    subjects_to_load_hw = ALL_TIMETABLES[weekday].subjects
+    answer = f'Домашнее задание на {WEEKDAYS_GEN[weekday]}:\n'
+    for i, subject in enumerate(subjects_to_load_hw):
+        line = f'{i+1}. '
+        if isinstance(subject, Sequence):
+            for s in subject:
+                if hw := s.load(week, weekday):
+                    line += f'{s.name_ru}: {hw.text}\n'
+                else:
+                    line += f'{s.name_ru} не найдено\n'
+                line += '   '
+        else:
+            if hw := subject.load(week, weekday):
+                line += f'{subject.name_ru}: {hw.text}\n'
+            else:
+                line += f'{subject.name_ru} не найдено\n'
+        answer += f'{line}\n'
+    await msg.answer(answer)
+
 async def main() -> None:
     # Initialize Bot instance with a default parse mode which will be passed to all API calls
     session = AiohttpSession(proxy="http://proxy.server:3128")
-    bot = Bot(token=config.arkadiy_tg_token, session=session)
+    bot = Bot(token=config.arkadiy_tg_token, session=session if IS_ON_SERVER else None)
     # And the run events dispatching
     await bot.send_message(1122505805, f'Я запустился ({time.ctime()})')
     await dp.start_polling(bot)
