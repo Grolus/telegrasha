@@ -170,8 +170,8 @@ async def full_homework_request(msg: types.Message):
     for i, subject in enumerate(subjects_to_load_hw):
         line = f'{i+1}. '
         if isinstance(subject, Sequence):
-            for s in subject:
-                if hw := s.load(week, weekday):
+            for i, s in enumerate(subject):
+                if hw := s.load(week, weekday, i+1):
                     line += f'{s.name_ru}: {hw.text}\n'
                 else:
                     line += f'{s.name_ru} не найдено\n'
