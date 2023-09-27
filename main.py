@@ -7,10 +7,11 @@ import os
 import re
 
 from aiogram import Bot, Dispatcher, types
-from aiogram.types.message import ContentType
+from aiogram.types import Message, Update
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram import F
 from typing import Sequence
+from pprint import pprint
 from dp import dp
 from subject import ALL_SUBJECTS, GROOPED_SUBJECTS, ALL_TIMETABLES, Homework
 from utils import *
@@ -27,17 +28,19 @@ IS_ON_SERVER = 'Grolus' in os.path.abspath(__file__)
 
 
 
-@dp.message(F.text == 'аркаша?')
-async def self_call(msg: types.Message):
+@dp.message(F.text.lower() == 'аркаша?')
+async def self_call(msg: Message):
     logging.info('Self call detected')
     await msg.answer(f'Я тут, {msg.from_user.full_name}')
 
 hw_set_regex = r'^[пП]о .+|.+ [пП]о \S+(?: [12] групп?[аые])$'
-@dp.message(F.text.regexp(hw_set_regex))
-@dp.edited_message(F.text.regexp(hw_set_regex))
-async def homework_set(msg: types.Message):
+filters = F.text.regexp(hw_set_regex) | F.photo & F.caption.regexp(hw_set_regex)
+@dp.message(filters)
+@dp.edited_message(filters)
+async def homework_set(msg: Message):
     logging.info('Homework setting')
-    text = msg.text.lower()
+
+    text = msg.text.lower() if msg.text else msg.caption.lower()
     text_words = text.split()
     is_simple = text.startswith('по ')
     is_grooped_in_msg = len(text_words) > 4 and (('груп' in text_words[3] and is_word_groop_name(text_words[2])) or \
@@ -71,7 +74,7 @@ f'''Не понял, какая группа предмета {subject.name_ru} 
             return
 
     # text compile
-    text_words = msg.text.split()
+    text_words = msg.text.split() if msg.text else msg.caption.split()
     if text.startswith('по '):
         hw_text_words = text_words[4:] if is_grooped_in_msg else text_words[2:] 
     else:
@@ -85,9 +88,12 @@ f'''Не понял, какая группа предмета {subject.name_ru} 
     new_week, new_weekday = wd_calc(now_week, now_weekday, subject.weekdays[weekdays_key] if subject.is_grouped else subject.weekdays)
 
     # TODO attachment saving
+    attachment = ''
+    if msg.photo:
+        attachment = msg.photo[0].file_id
 
     # homework saving
-    collected_homework = Homework(subject, hw_text, msg.from_user.full_name)
+    collected_homework = Homework(subject, hw_text, msg.from_user.full_name, attachment)
     if not collected_homework.save(new_week, new_weekday, group):
         await msg.answer(f'Не удалось сохранить дз по {subject.name_ru}')
         return
@@ -98,7 +104,7 @@ f'''Не понял, какая группа предмета {subject.name_ru} 
 hw_request_regex = r'[Чч]то (?:по|на) .*\?$'
 @dp.message(F.text.regexp(hw_request_regex))
 @dp.edited_message(F.text.regexp(hw_request_regex))
-async def homework_request(msg: types.Message):
+async def homework_request(msg: Message):
     text = msg.text.lower()
     text_words = text.split()
     is_grooped_in_msg = len(text_words) > 3 and is_word_groop_name(text_words[3])
@@ -136,13 +142,20 @@ f'''Не понял, какая группа предмета {subject.name_ru} 
     if not (loaded_homework := subject.load(new_week, new_weekday, group)):
         await msg.answer(f'Не найдено задания по {subject.name_ru}{f" ({group} группа)" if group else ""}.')
         return
+    answer = f'Задание по {subject.name_ru}{f" ({group} группа)" if group else ""}' +\
+            f' на {WEEKDAYS_GEN[new_weekday]}{" следующей недели" if new_week > now_week else ""}:\n' +\
+            f'{loaded_homework.text} (отправил(а): {loaded_homework.sender})'
+    if loaded_homework.attachment:
+        await msg.answer_photo(loaded_homework.attachment, answer)
+        return
     await msg.answer(f'Задание по {subject.name_ru}{f" ({group} группа)" if group else ""}' +\
                      f' на {WEEKDAYS_GEN[new_weekday]}{" следующей недели" if new_week > now_week else ""}:\n' +\
                      f'{loaded_homework.text} (отправил(а): {loaded_homework.sender})')
+    
 
 hw_full_request_regex = r'[Чч]то задали на .+\?$'
 @dp.message(F.text.regexp(hw_full_request_regex))
-async def full_homework_request(msg: types.Message):
+async def full_homework_request(msg: Message):
     text = msg.text.lower()
     text_words = text.split()
 
@@ -174,17 +187,25 @@ async def full_homework_request(msg: types.Message):
         if isinstance(subject, Sequence):
             for i, s in enumerate(subject):
                 if hw := s.load(week, weekday, i+1):
-                    line += f'{s.name_ru}: {hw.text}\n'
+                    line += f'{s.name_ru}{f" (c вложением)" if hw.attachment else ""}: {hw.text}\n'
                 else:
                     line += f'{s.name_ru} не найдено\n'
                 line += '   '
         else:
             if hw := subject.load(week, weekday):
-                line += f'{subject.name_ru}: {hw.text}\n'
+                line += f'{subject.name_ru}{f" (c вложением)" if hw.attachment else ""}: {hw.text}\n'
             else:
                 line += f'{subject.name_ru} не найдено\n'
         answer += f'{line}\n'
     await msg.answer(answer)
+
+
+@dp.message()
+async def tmp(msg: Message):
+    print()
+    pprint(msg.model_dump(exclude_none=True), sort_dicts=False)
+    print()
+    await msg.answer_photo('AgACAgIAAxkBAAMaZRPu3W8QKzCd9kj48sHXQq-IfYwAAvTLMRvu1qBIzZaLGtuOIXsBAAMCAAN4AAMwBA', msg.caption)
 
 async def main() -> None:
     # Initialize Bot instance with a default parse mode which will be passed to all API calls
