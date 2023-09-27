@@ -1,4 +1,4 @@
-import config
+import data.config as config
 import logging
 import asyncio
 import sys
