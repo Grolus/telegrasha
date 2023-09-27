@@ -84,6 +84,8 @@ f'''Не понял, какая группа предмета {subject.name_ru} 
     now_week, now_weekday = get_now_week_weekday()
     new_week, new_weekday = wd_calc(now_week, now_weekday, subject.weekdays[weekdays_key] if subject.is_grouped else subject.weekdays)
 
+    # TODO attachment saving
+
     # homework saving
     collected_homework = Homework(subject, hw_text, msg.from_user.full_name)
     if not collected_homework.save(new_week, new_weekday, group):
