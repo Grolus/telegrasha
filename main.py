@@ -199,14 +199,6 @@ async def full_homework_request(msg: Message):
         answer += f'{line}\n'
     await msg.answer(answer)
 
-
-@dp.message()
-async def tmp(msg: Message):
-    print()
-    pprint(msg.model_dump(exclude_none=True), sort_dicts=False)
-    print()
-    await msg.answer_photo('AgACAgIAAxkBAAMaZRPu3W8QKzCd9kj48sHXQq-IfYwAAvTLMRvu1qBIzZaLGtuOIXsBAAMCAAN4AAMwBA', msg.caption)
-
 async def main() -> None:
     # Initialize Bot instance with a default parse mode which will be passed to all API calls
     session = AiohttpSession(proxy="http://proxy.server:3128")
