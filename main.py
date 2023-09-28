@@ -226,7 +226,7 @@ async def anecdote_request(msg: Message):
     else:
         now_anecdotes = Anecdote.get_all_numbers()
         if not now_anecdotes:
-            await msg.answer(f'К сожалению, у меня нет анекдотов :( Но ты можешь его записать! Просто напиши "Анекдот: [сам анекдот]"')
+            await msg.answer(f'К сожалению, у меня нет анекдотов :( Но ты можешь его записать! Просто напиши "Анекдот: [сам анекдот]" или ответьте на сообщение с анекдотом сообщением "анекдот" ')
             return
         number = random.choice(now_anecdotes)
     anecdote = Anecdote.get(number)
