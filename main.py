@@ -252,7 +252,7 @@ async def anecdote_deletion_request(msg: Message):
         return
     await msg.answer(f'Успешно удалён анекдот под номером {number}.')
     
-     
+
 
 
 async def main() -> None:
