@@ -5,6 +5,7 @@ import sys
 import time
 import os
 import re
+import random
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import Message, Update
@@ -14,6 +15,7 @@ from typing import Sequence
 from pprint import pprint
 from dp import dp
 from subject import ALL_SUBJECTS, GROOPED_SUBJECTS, ALL_TIMETABLES, Homework
+from anecdote import Anecdote
 from utils import *
 
 # log
@@ -24,7 +26,6 @@ IS_W_FOR_GROUP = False
 WEEKDAYS_GEN = ['понедельник', 'вторник', 'среду', 'четверг', 'пятницу', 'субботу', 'воскресение']
 WEEKDAYS_CALLS = ['понед', 'вторник', 'сред', 'четверг', 'пятниц', 'суббот', 'воскр']
 IS_ON_SERVER = 'Grolus' in os.path.abspath(__file__)
-
 
 
 
@@ -87,7 +88,7 @@ f'''Не понял, какая группа предмета {subject.name_ru} 
     now_week, now_weekday = get_now_week_weekday()
     new_week, new_weekday = wd_calc(now_week, now_weekday, subject.weekdays[weekdays_key] if subject.is_grouped else subject.weekdays)
 
-    # TODO attachment saving
+    # attachment saving
     attachment = ''
     if msg.photo:
         attachment = msg.photo[0].file_id
@@ -197,6 +198,62 @@ async def full_homework_request(msg: Message):
                 line += f'{subject.name_ru} не найдено\n'
         answer += f'{line}\n'
     await msg.answer(answer)
+
+@dp.message(F.text.regexp(r'[Аа]некдот(?: ?[-:].+)?$', flags=16))
+async def anecdote_set(msg: Message):
+    # text parse
+    if msg.reply_to_message and len(msg.text.split()) == 1:
+        anec_text = msg.reply_to_message.text
+        if anec_text is None:
+            anec_text = msg.reply_to_message.caption
+    else:
+        anec_text = msg.text[8:] if len(msg.text) > 8 else None
+    
+    # saving anecdote
+    number = Anecdote.save(anec_text)
+    # answer
+    if anec_text is None: 
+        await msg.answer(f'''Если вы пытались сохранить анекдот, то что то пошло не так. 
+                         Ответьте на сообщение с анекдотом сообщением "Анекдот" или напишите его сами: 
+                         "Анекдот: [текст анекдота]"''')
+    await msg.answer(f'Сохранил анекдот [{anec_text}]. Спасибо, это уже мой {number}-й анекдот.')
+
+@dp.message(F.text.regexp(r'^[Аа]ркаша?,? расс?кажи анек(?:дот)?.+(?: \d+)?$'))
+async def anecdote_request(msg: Message):
+    psewdo_number = msg.text.split()[-1]
+    if psewdo_number.isdigit():
+        number = int(psewdo_number)
+    else:
+        now_anecdotes = Anecdote.get_all_numbers
+        if not now_anecdotes:
+            await msg.answer(f'К сожалению, у меня нет анекдотов :( Но ты можешь его записать! Просто напиши "Анекдот: [сам анекдот]"')
+            return
+        number = random.choice(now_anecdotes)
+    anecdote = Anecdote.get(number)
+    if anecdote is None:
+        await msg.answer(f'Не нашёл анекдота под номером {number}.')
+        return
+    await msg.answer(f'Анекдот {number}: {anecdote}')
+
+@dp.message(F.text.regexp(r'[Аа]ркаша?,? уд[ао]ли анек(?:дот)? .+'))
+async def anecdote_deletion_request(msg: Message):
+    psewdo_number = msg.text.split()[-1]
+    if psewdo_number.isdigit():
+        number = int(psewdo_number)
+    elif len(numbers := find_numbers_in_text(msg.text)) == 1:
+        number = numbers
+    else:
+        await msg.answer(f'Если вы пытаетесь удалить анекдот, то я не понял его номер. ' + \
+                         'Чтобы я его понял, нужно чтобы в сообщении не было чисел, кроме номера анекдота, ' + \
+                            'или чтобы нужное число было последним словом в сообщении')
+        return
+    if not Anecdote.delete(number):
+        await msg.answer(f'Не нашёл анекдота под номером {number}.')
+        return
+    await msg.answer(f'Успешно удалён анекдот под номером {number}.')
+    
+    
+
 
 async def main() -> None:
     # Initialize Bot instance with a default parse mode which will be passed to all API calls
