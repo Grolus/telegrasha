@@ -33,7 +33,7 @@ async def self_call(msg: Message):
     logging.info('Self call detected')
     await msg.answer(f'Я тут, {msg.from_user.full_name}')
 
-hw_set_regex = r'^[пП]о .+|.+ [пП]о \S+(?: [12] групп?[аые])$'
+hw_set_regex = r'^[пП]о .+|.+ [пП]о \S+(?: [12] групп?[аые])?$'
 filters = F.text.regexp(hw_set_regex) | F.photo & F.caption.regexp(hw_set_regex)
 @dp.message(filters)
 @dp.edited_message(filters)
@@ -56,7 +56,7 @@ async def homework_set(msg: Message):
             continue
         break
     else:
-        return
+        return # :(
     
     # group searchig
     weekdays_key = None
@@ -81,7 +81,7 @@ f'''Не понял, какая группа предмета {subject.name_ru} 
         hw_text_words = text_words[:-2]
     hw_text = ' '.join(hw_text_words)
     hw_text = hw_text.strip()
-    if hw_text.startswith('-'): hw_text[1:]
+    if hw_text.startswith('-'): hw_text = hw_text[1:]
 
     # time compile
     now_week, now_weekday = get_now_week_weekday()
@@ -151,7 +151,6 @@ f'''Не понял, какая группа предмета {subject.name_ru} 
     await msg.answer(f'Задание по {subject.name_ru}{f" ({group} группа)" if group else ""}' +\
                      f' на {WEEKDAYS_GEN[new_weekday]}{" следующей недели" if new_week > now_week else ""}:\n' +\
                      f'{loaded_homework.text} (отправил(а): {loaded_homework.sender})')
-    
 
 hw_full_request_regex = r'[Чч]то задали на .+\?$'
 @dp.message(F.text.regexp(hw_full_request_regex))
