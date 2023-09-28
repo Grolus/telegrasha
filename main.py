@@ -216,7 +216,7 @@ async def anecdote_set(msg: Message):
         await msg.answer(f'''Если вы пытались сохранить анекдот, то что то пошло не так. 
                          Ответьте на сообщение с анекдотом сообщением "Анекдот" или напишите его сами: 
                          "Анекдот: [текст анекдота]"''')
-    await msg.answer(f'Сохранил анекдот [{anec_text}]. Спасибо, это уже мой {number}-й анекдот.')
+    await msg.answer(f'Сохранил анекдот [{anec_text[:15] + "..." if len(anec_text) > 15 else anec_text}]. Спасибо, это уже мой {number}-й анекдот.')
 
 @dp.message(F.text.regexp(r'^[Аа]ркаша?,? расс?кажи анек(?:дот)?.*(?: \d+)?$'))
 async def anecdote_request(msg: Message):
