@@ -218,13 +218,13 @@ async def anecdote_set(msg: Message):
                          "Анекдот: [текст анекдота]"''')
     await msg.answer(f'Сохранил анекдот [{anec_text}]. Спасибо, это уже мой {number}-й анекдот.')
 
-@dp.message(F.text.regexp(r'^[Аа]ркаша?,? расс?кажи анек(?:дот)?.+(?: \d+)?$'))
+@dp.message(F.text.regexp(r'^[Аа]ркаша?,? расс?кажи анек(?:дот)?.*(?: \d+)?$'))
 async def anecdote_request(msg: Message):
     psewdo_number = msg.text.split()[-1]
     if psewdo_number.isdigit():
         number = int(psewdo_number)
     else:
-        now_anecdotes = Anecdote.get_all_numbers
+        now_anecdotes = Anecdote.get_all_numbers()
         if not now_anecdotes:
             await msg.answer(f'К сожалению, у меня нет анекдотов :( Но ты можешь его записать! Просто напиши "Анекдот: [сам анекдот]"')
             return
@@ -233,15 +233,15 @@ async def anecdote_request(msg: Message):
     if anecdote is None:
         await msg.answer(f'Не нашёл анекдота под номером {number}.')
         return
-    await msg.answer(f'Анекдот {number}: {anecdote}')
+    await msg.answer(f'Анекдот {number}: \n{anecdote}')
 
-@dp.message(F.text.regexp(r'[Аа]ркаша?,? уд[ао]ли анек(?:дот)? .+'))
+@dp.message(F.text.regexp(r'[Аа]ркаша?,? уд[ао]ли (?:[0-9]* )?анек(?:дот)?.*'))
 async def anecdote_deletion_request(msg: Message):
     psewdo_number = msg.text.split()[-1]
     if psewdo_number.isdigit():
         number = int(psewdo_number)
     elif len(numbers := find_numbers_in_text(msg.text)) == 1:
-        number = numbers
+        number = numbers[0]
     else:
         await msg.answer(f'Если вы пытаетесь удалить анекдот, то я не понял его номер. ' + \
                          'Чтобы я его понял, нужно чтобы в сообщении не было чисел, кроме номера анекдота, ' + \
