@@ -46,9 +46,12 @@ ALL_SUBJECTS = (
 SUBJECTS_ENGNAME_DICT = {s.name_eng : s for s in ALL_SUBJECTS}
 SUBJECTS_RUNAME_DICT = {s.name_ru : s for s in ALL_SUBJECTS}
 GROOPED_SUBJECTS = [s for s in ALL_SUBJECTS if s.is_grouped]
-ALL_SUBJECT_CALLS = []
+ALL_SUBJECT_ALIASES = []
+SUBJECTS_FROM_ALIASES_DICT = {}
 for s in ALL_SUBJECTS:
-    ALL_SUBJECT_CALLS.extend(s.aliases)
+    ALL_SUBJECT_ALIASES.extend(s.aliases)
+    SUBJECTS_FROM_ALIASES_DICT.update({al : s for al in s.aliases})
+
 
 class Homework():
     def __init__(self, subject: Subject, text: str, sender: str, attachment: str=''):

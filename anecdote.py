@@ -1,10 +1,8 @@
 import os
 
 
-
-
-
 class Anecdote:
+
     def save(text: str):
         if 'anecdotes' not in os.listdir('data'):
             os.mkdir('data/anecdotes')
@@ -19,6 +17,7 @@ class Anecdote:
         with open(file_path, 'w') as file:
             file.write(text)
         return number
+    
     def get(number: int) -> str:
         """Возвращает анекдот по номеру"""
         if 'anecdotes' not in os.listdir('data'): return
@@ -29,6 +28,7 @@ class Anecdote:
         with open(f'data/anecdotes/{number}.txt', 'r') as file:
             anecdote = file.read()
         return anecdote
+    
     def delete(number: int) -> bool:
         """Удаляет анекдот по номеру и возвращает `True`. \n
         Если данного анкдота под данным номером не было, то вернет `False`"""
@@ -37,6 +37,7 @@ class Anecdote:
             return True
         except FileNotFoundError:
             return False
+        
     def get_all_numbers() -> list[int]:
         """Возвращает все номера записанных анекдотов"""
         if 'anecdotes' not in os.listdir('data'): return

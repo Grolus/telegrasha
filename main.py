@@ -14,10 +14,14 @@ from aiogram import F
 from typing import Sequence
 from pprint import pprint
 from dp import dp
-from subject import ALL_SUBJECTS, GROOPED_SUBJECTS, ALL_TIMETABLES, Homework
 from anecdote import Anecdote
 from utils import *
-
+from subject import (ALL_SUBJECTS, 
+                     GROOPED_SUBJECTS, 
+                     ALL_TIMETABLES, 
+                     ALL_SUBJECT_ALIASES,
+                     SUBJECTS_FROM_ALIASES_DICT,
+                     Homework)
 # log
 logging.basicConfig(level=logging.INFO)
 
@@ -34,30 +38,23 @@ async def self_call(msg: Message):
     logging.info('Self call detected')
     await msg.answer(f'Я тут, {msg.from_user.full_name}')
 
-hw_set_regex = r'^[пП]о .+|.+ [пП]о \S+(?: [12] групп?[аые])?$'
+hw_set_regex = r'^[пП]о .*^\?$'
 filters = F.text.regexp(hw_set_regex) | F.photo & F.caption.regexp(hw_set_regex)
 @dp.message(filters)
 @dp.edited_message(filters)
 async def homework_set(msg: Message):
     logging.info('Homework setting')
-
-    text = msg.text.lower() if msg.text else msg.caption.lower()
+    text_orig = msg.text if msg.text else msg.caption
+    text = text_orig.lower()
     text_words = text.split()
-    is_simple = text.startswith('по ')
     is_grooped_in_msg = len(text_words) > 4 and (('груп' in text_words[3] and is_word_groop_name(text_words[2])) or \
         ('груп' in text_words[-1] and is_word_groop_name(text_words[-2])))
     
     # subject searching
-    sj_searched_in = text.split()[1] + ' ' + text.split()[-1]
-    for subject in ALL_SUBJECTS:
-        for alias in subject.aliases:
-            if alias in sj_searched_in:
-                break
-        else:
-            continue
-        break
-    else:
-        return # :(
+    for al in ALL_SUBJECT_ALIASES:
+        if al in text:
+            subject = SUBJECTS_FROM_ALIASES_DICT[al]
+            
     
     # group searchig
     weekdays_key = None
@@ -208,14 +205,14 @@ async def anecdote_set(msg: Message):
             anec_text = msg.reply_to_message.caption
     else:
         anec_text = msg.text[8:] if len(msg.text) > 8 else None
-    
     # saving anecdote
-    number = Anecdote.save(anec_text)
-    # answer
     if anec_text is None: 
         await msg.answer(f'''Если вы пытались сохранить анекдот, то что то пошло не так. 
                          Ответьте на сообщение с анекдотом сообщением "Анекдот" или напишите его сами: 
                          "Анекдот: [текст анекдота]"''')
+        return
+    number = Anecdote.save(anec_text)
+    # answer
     await msg.answer(f'Сохранил анекдот [{anec_text[:15] + "..." if len(anec_text) > 15 else anec_text}]. Спасибо, это уже мой {number}-й анекдот.')
 
 @dp.message(F.text.regexp(r'^[Аа]ркаша?,? расс?кажи анек(?:дот)?.*(?: \d+)?$'))
