@@ -38,7 +38,7 @@ async def self_call(msg: Message):
     logging.info('Self call detected')
     await msg.answer(f'Я тут, {msg.from_user.full_name}')
 
-hw_set_regex = r'^[пП]о .*^\?$'
+hw_set_regex = r'^[пП]о .*[^?]$'
 filters = F.text.regexp(hw_set_regex) | F.photo & F.caption.regexp(hw_set_regex)
 @dp.message(filters)
 @dp.edited_message(filters)
