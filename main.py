@@ -21,7 +21,8 @@ from subject import (ALL_SUBJECTS,
                      ALL_TIMETABLES, 
                      ALL_SUBJECT_ALIASES,
                      SUBJECTS_FROM_ALIASES_DICT,
-                     Homework)
+                     Homework,
+                     is_subject_in)
 # log
 logging.basicConfig(level=logging.INFO)
 
@@ -32,14 +33,13 @@ WEEKDAYS_CALLS = ['понед', 'вторник', 'сред', 'четверг', 
 IS_ON_SERVER = 'Grolus' in os.path.abspath(__file__)
 
 
-
 @dp.message(F.text.lower() == 'аркаша?')
 async def self_call(msg: Message):
     logging.info('Self call detected')
     await msg.answer(f'Я тут, {msg.from_user.full_name}')
 
 hw_set_regex = r'^[пП]о .*[^?]$'
-filters = F.text.regexp(hw_set_regex) | F.photo & F.caption.regexp(hw_set_regex)
+filters = F.text.regexp(hw_set_regex) & F.text.func(is_subject_in) | F.photo & F.caption.regexp(hw_set_regex) & F.caption.func(is_subject_in)
 @dp.message(filters)
 @dp.edited_message(filters)
 async def homework_set(msg: Message):
@@ -54,8 +54,8 @@ async def homework_set(msg: Message):
     for al in ALL_SUBJECT_ALIASES:
         if al in text:
             subject = SUBJECTS_FROM_ALIASES_DICT[al]
+            break
             
-    
     # group searchig
     weekdays_key = None
     group = None
@@ -100,22 +100,17 @@ f'''Не понял, какая группа предмета {subject.name_ru} 
                      f' [{hw_text}] Спасибо')
 
 hw_request_regex = r'[Чч]то (?:по|на) .*\?$'
-@dp.message(F.text.regexp(hw_request_regex))
+@dp.message(F.text.regexp(hw_request_regex) & F.text.func(is_subject_in))
 @dp.edited_message(F.text.regexp(hw_request_regex))
 async def homework_request(msg: Message):
     text = msg.text.lower()
     text_words = text.split()
     is_grooped_in_msg = len(text_words) > 3 and is_word_groop_name(text_words[3])
     # subject searching
-    for subject in ALL_SUBJECTS:
-        for alias in subject.aliases:
-            if len(text_words) > 2 and alias in text_words[2]:
-                break
-        else:
-            continue
-        break
-    else:
-        return
+    for al in ALL_SUBJECT_ALIASES:
+        if al in text:
+            subject = SUBJECTS_FROM_ALIASES_DICT[al]
+            break
     
     # group searching
     weekdays_key = None
@@ -181,7 +176,7 @@ async def full_homework_request(msg: Message):
     answer = f'Домашнее задание на {WEEKDAYS_GEN[weekday]}:\n'
     for i, subject in enumerate(subjects_to_load_hw):
         line = f'{i+1}. '
-        if isinstance(subject, Sequence):
+        if isinstance(subject, Sequence): # :((((((
             for i, s in enumerate(subject):
                 if hw := s.load(week, weekday, i+1):
                     line += f'{s.name_ru}{f" (c вложением)" if hw.attachment else ""}: {hw.text}\n'

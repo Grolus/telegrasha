@@ -51,7 +51,8 @@ SUBJECTS_FROM_ALIASES_DICT = {}
 for s in ALL_SUBJECTS:
     ALL_SUBJECT_ALIASES.extend(s.aliases)
     SUBJECTS_FROM_ALIASES_DICT.update({al : s for al in s.aliases})
-
+def is_subject_in(text: str): 
+    return any([i in text for i in ALL_SUBJECT_ALIASES])
 
 class Homework():
     def __init__(self, subject: Subject, text: str, sender: str, attachment: str=''):
