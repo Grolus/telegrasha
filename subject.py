@@ -51,6 +51,7 @@ SUBJECTS_FROM_ALIASES_DICT = {}
 for s in ALL_SUBJECTS:
     ALL_SUBJECT_ALIASES.extend(s.aliases)
     SUBJECTS_FROM_ALIASES_DICT.update({al : s for al in s.aliases})
+
 def is_subject_in(text: str): 
     return any([i in text for i in ALL_SUBJECT_ALIASES])
 
@@ -81,6 +82,15 @@ def _subject_identify(obj: Subject | str | Sequence) -> Subject | tuple[Subject]
     elif isinstance(obj, Sequence):
          return tuple(_subject_identify(s) for s in obj)
     raise ValueError(f'All of subjects must me Subject instance or valid subject name (error: {obj})')
+
+def subject_to_hw_send_line(subject: Subject, week: int, weekday: int, group: int=0):
+    raw_line = f'{subject.name_ru}{f" [{group}] группа" if group else ""}'
+    if hw := subject.load(week, weekday):
+        line = f'✅{raw_line}{f" (c вложением🧩)" if hw.attachment else ""}: {hw.text}'
+    else:
+        line = f'❌{raw_line} не найдено'
+    return line
+
 
 class Timetable():
     def __init__(self, weekday: int, *subjects: Subject | str):

@@ -22,7 +22,8 @@ from subject import (ALL_SUBJECTS,
                      ALL_SUBJECT_ALIASES,
                      SUBJECTS_FROM_ALIASES_DICT,
                      Homework,
-                     is_subject_in)
+                     is_subject_in,
+                     subject_to_hw_send_line)
 # log
 logging.basicConfig(level=logging.INFO)
 
@@ -71,19 +72,25 @@ f'''Не понял, какая группа предмета {subject.name_ru} 
             )
             return
 
+    # time compile
+    now_week, now_weekday = get_now_week_weekday()
+    finded = False
+    if ' на ' in text:
+        if wd_word := re.search(r' на (понед|вторник|сред|четверг|пятниц)', text).string: 
+            wd_in_text = WEEKDAYS_CALLS.index(wd_word)
+            if wd_in_text in subject.weekdays[weekdays_key] if group else subject.weekdays:
+                new_week, new_weekday = wd_calc(now_week, now_weekday, [wd_in_text])
+                finded = True
+    if not finded:
+        new_week, new_weekday = wd_calc(now_week, now_weekday, subject.weekdays[weekdays_key] if subject.is_grouped else subject.weekdays)
+
     # text compile
-    text_words = msg.text.split() if msg.text else msg.caption.split()
+    text_words = text_orig.split()
     if text.startswith('по '):
         hw_text_words = text_words[4:] if is_grooped_in_msg else text_words[2:] 
-    else:
-        hw_text_words = text_words[:-2]
     hw_text = ' '.join(hw_text_words)
     hw_text = hw_text.strip()
     if hw_text.startswith('-'): hw_text = hw_text[1:]
-
-    # time compile
-    now_week, now_weekday = get_now_week_weekday()
-    new_week, new_weekday = wd_calc(now_week, now_weekday, subject.weekdays[weekdays_key] if subject.is_grouped else subject.weekdays)
 
     # attachment saving
     attachment = ''
@@ -176,20 +183,17 @@ async def full_homework_request(msg: Message):
     answer = f'Домашнее задание на {WEEKDAYS_GEN[weekday]}:\n'
     for i, subject in enumerate(subjects_to_load_hw):
         line = f'{i+1}. '
-        if isinstance(subject, Sequence): # :((((((
+        if isinstance(subject, Sequence):
             for i, s in enumerate(subject):
-                if hw := s.load(week, weekday, i+1):
-                    line += f'{s.name_ru}{f" (c вложением)" if hw.attachment else ""}: {hw.text}\n'
+                compiled_hw = subject_to_hw_send_line(s, week, weekday, i + 1) + '\n'
+                if i == 0:
+                    line += f'{compiled_hw}\n'
                 else:
-                    line += f'{s.name_ru} не найдено\n'
-                line += '   '
+                    line += f'__{compiled_hw}\n'
         else:
-            if hw := subject.load(week, weekday):
-                line += f'{subject.name_ru}{f" (c вложением)" if hw.attachment else ""}: {hw.text}\n'
-            else:
-                line += f'{subject.name_ru} не найдено\n'
+            line += subject_to_hw_send_line(subject, week, weekday) + '\n'
         answer += f'{line}\n'
-    await msg.answer(answer)
+    await msg.answer(answer, )
 
 @dp.message(F.text.regexp(r'[Аа]некдот(?: ?[-:].+)?$', flags=16))
 async def anecdote_set(msg: Message):
