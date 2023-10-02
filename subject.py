@@ -85,7 +85,7 @@ def _subject_identify(obj: Subject | str | Sequence) -> Subject | tuple[Subject]
 
 def subject_to_hw_send_line(subject: Subject, week: int, weekday: int, group: int=0):
     raw_line = f'{subject.name_ru}{f" [{group}] группа" if group else ""}'
-    if hw := subject.load(week, weekday):
+    if hw := subject.load(week, weekday, str(group) if group else ''):
         line = f'✅{raw_line}{f" (c вложением🧩)" if hw.attachment else ""}: {hw.text}'
     else:
         line = f'❌{raw_line} не найдено'
