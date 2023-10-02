@@ -185,7 +185,7 @@ async def full_homework_request(msg: Message):
         line = f'{i+1}. '
         if isinstance(subject, Sequence):
             for i, s in enumerate(subject):
-                compiled_hw = subject_to_hw_send_line(s, week, weekday, i + 1) + '\n'
+                compiled_hw = subject_to_hw_send_line(s, week, weekday, i + 1) 
                 if i == 0:
                     line += f'{compiled_hw}\n'
                 else:
