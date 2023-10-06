@@ -105,7 +105,7 @@ ALL_TIMETABLES = (
     Timetable(1, 'algebra', ('english', 'english'), 'chemistry', 'socienty', 'russian', 'algebra'),
     Timetable(2, 'biology', 'algebra', 'physics', 'russian', 'physculture', 'literature', ('english', 'informatics')),
     Timetable(3, 'biology', 'history', 'geometry', 'technology', 'geometry', 'physculture', 'russian'),
-    Timetable(4, 'geography', 'projects', 'obzh', 'chemistry', 'russian', 'literature')
+    Timetable(4, 'geography', 'projects', 'obzh', 'chemistry', 'russian', 'literature', 'physics')
 )
 
 
