@@ -40,7 +40,7 @@ async def self_call(msg: Message):
     await msg.answer(f'Я тут, {msg.from_user.full_name}')
 
 hw_set_regex = r'^[пП]о .*[^?]$'
-filters = F.text.regexp(hw_set_regex) & F.text.func(is_subject_in) | F.photo & F.caption.regexp(hw_set_regex) & F.caption.func(is_subject_in)
+filters = (F.text.regexp(hw_set_regex) & F.text.func(is_subject_in)) | (F.photo & F.caption.regexp(hw_set_regex) & F.caption.func(is_subject_in))
 @dp.message(filters)
 @dp.edited_message(filters)
 async def homework_set(msg: Message):
@@ -76,7 +76,8 @@ f'''Не понял, какая группа предмета {subject.name_ru} 
     now_week, now_weekday = get_now_week_weekday()
     finded = False
     if ' на ' in text:
-        if wd_word := re.search(r' на (понед|вторник|сред|четверг|пятниц)', text).string: 
+        if re_result := re.search(r' на (понед|вторник|сред|четверг|пятниц)', text): 
+            wd_word = re_result.string
             wd_in_text = WEEKDAYS_CALLS.index(wd_word)
             if wd_in_text in subject.weekdays[weekdays_key] if group else subject.weekdays:
                 new_week, new_weekday = wd_calc(now_week, now_weekday, [wd_in_text])
