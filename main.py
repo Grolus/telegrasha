@@ -76,12 +76,12 @@ f'''Не понял, какая группа предмета {subject.name_ru} 
     now_week, now_weekday = get_now_week_weekday()
     finded = False
     if ' на ' in text:
-        if re_result := re.search(r' на (понед|вторник|сред|четверг|пятниц)', text): 
-            wd_word = re_result.string
-            wd_in_text = WEEKDAYS_CALLS.index(wd_word)
-            if wd_in_text in subject.weekdays[weekdays_key] if group else subject.weekdays:
-                new_week, new_weekday = wd_calc(now_week, now_weekday, [wd_in_text])
+        for i, call in enumerate(WEEKDAYS_CALLS):
+            if call in text:
+                weekday = i
+                new_week, new_weekday = wd_calc(now_week, now_weekday, [weekday])
                 finded = True
+                break
     if not finded:
         new_week, new_weekday = wd_calc(now_week, now_weekday, subject.weekdays[weekdays_key] if subject.is_grouped else subject.weekdays)
 
