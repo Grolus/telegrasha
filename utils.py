@@ -1,5 +1,12 @@
 
 import time
+import datetime
+import os
+
+IS_W_FOR_GROUP = False
+WEEKDAYS_GEN = ['понедельник', 'вторник', 'среду', 'четверг', 'пятницу', 'субботу', 'воскресение']
+WEEKDAYS_CALLS = ['понед', 'вторник', 'сред', 'четверг', 'пятниц', 'суббот', 'воскр']
+IS_ON_SERVER = 'Grolus' in os.path.abspath(__file__)
 
 
 def wd_up(wd: int, up: int, w: int | None=None): 
@@ -32,6 +39,11 @@ def get_now_week_weekday():
     t = time.gmtime(time.time())
     return t.tm_yday // 7 + 1, t.tm_wday
 
+def get_week_weekday_from_datetime(dt: datetime.datetime):
+    tm_time = time.gmtime(dt.timestamp())
+    return tm_time.tm_yday // 7 + 1, tm_time.tm_wday
+get_wwd = get_week_weekday_from_datetime
+
 def find_numbers_in_text(text: str) -> list[int]:
     """Ищет числа в тексте и возвращает их список"""
     numbers = []
@@ -51,6 +63,27 @@ def find_numbers_in_text(text: str) -> list[int]:
     if current_number:
         numbers.append(int(current_number))
     return numbers
+
+def wd_in_text_master(
+        now_week: int,
+        now_weekday: int,
+        text: str 
+        ) -> tuple[int, int] | None:
+    weekday = None
+    for i, call in enumerate(WEEKDAYS_CALLS):
+        if call in text:
+            weekday = i
+            break
+    if weekday is None:
+        if 'сегодня' in text:
+            weekday = now_weekday
+        elif 'завтра' in text:
+            weekday = wd_up(now_weekday, 1)
+        else:
+            return None
+    week = now_week + 1 if now_weekday > weekday else now_week
+    return week, weekday
+
 
 if __name__ == '__main__':
     text = 'paio f23 ca 41 asdjp c 3204582093 APOK 9 1231 AACL;K ;aKSD9 sad9f80a3'

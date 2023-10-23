@@ -7,12 +7,11 @@ import os
 import re
 import random
 
-from aiogram import Bot, Dispatcher, types
-from aiogram.types import Message, Update
+from aiogram import Bot
+from aiogram.types import Message, Update, InputMediaPhoto
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram import F
 from typing import Sequence
-from pprint import pprint
 from dp import dp
 from anecdote import Anecdote
 from utils import *
@@ -22,24 +21,22 @@ from subject import (ALL_SUBJECTS,
                      ALL_SUBJECT_ALIASES,
                      SUBJECTS_FROM_ALIASES_DICT,
                      Homework,
+                     Subject,
                      is_subject_in,
                      subject_to_hw_send_line)
 # log
 logging.basicConfig(level=logging.INFO)
 
 
-IS_W_FOR_GROUP = False
-WEEKDAYS_GEN = ['понедельник', 'вторник', 'среду', 'четверг', 'пятницу', 'субботу', 'воскресение']
-WEEKDAYS_CALLS = ['понед', 'вторник', 'сред', 'четверг', 'пятниц', 'суббот', 'воскр']
-IS_ON_SERVER = 'Grolus' in os.path.abspath(__file__)
+
 
 
 @dp.message(F.text.lower() == 'аркаша?')
 async def self_call(msg: Message):
-    logging.info('Self call detected')
+    logging.info(f'Self call detected ({time.gmtime(msg.date.timestamp())})')
     await msg.answer(f'Я тут, {msg.from_user.full_name}')
 
-hw_set_regex = r'^[пП]о .*[^?]$'
+hw_set_regex = r'^[аА]ркаша,? [пП]о .*[^?]$'
 filters = (F.text.regexp(hw_set_regex) & F.text.func(is_subject_in)) | (F.photo & F.caption.regexp(hw_set_regex) & F.caption.func(is_subject_in))
 @dp.message(filters)
 @dp.edited_message(filters)
@@ -73,7 +70,7 @@ f'''Не понял, какая группа предмета {subject.name_ru} 
             return
 
     # time compile
-    now_week, now_weekday = get_now_week_weekday()
+    now_week, now_weekday = get_wwd(msg.date)
     finded = False
     if ' на ' in text:
         for i, call in enumerate(WEEKDAYS_CALLS):
@@ -84,10 +81,11 @@ f'''Не понял, какая группа предмета {subject.name_ru} 
                 break
     if not finded:
         new_week, new_weekday = wd_calc(now_week, now_weekday, subject.weekdays[weekdays_key] if subject.is_grouped else subject.weekdays)
+        print(f'({now_week}, {now_weekday}) -> ({new_week}, {new_weekday})')
 
     # text compile
     text_words = text_orig.split()
-    if text.startswith('по '):
+    if text.startswith('аркаша по') or text.startswith('аркаша, по'):
         hw_text_words = text_words[4:] if is_grooped_in_msg else text_words[2:] 
     hw_text = ' '.join(hw_text_words)
     hw_text = hw_text.strip()
@@ -96,10 +94,14 @@ f'''Не понял, какая группа предмета {subject.name_ru} 
     # attachment saving
     attachment = ''
     if msg.photo:
-        attachment = msg.photo[0].file_id
+        for photo in msg.photo:
+            attachment += photo.file_id + ','
+        print(attachment)
 
     # homework saving
     collected_homework = Homework(subject, hw_text, msg.from_user.full_name, attachment)
+    if not collected_homework.text and not collected_homework.attachment:
+        await msg.answer(f'Не сохранил пустое дз по {subject.name_ru}')
     if not collected_homework.save(new_week, new_weekday, group):
         await msg.answer(f'Не удалось сохранить дз по {subject.name_ru}')
         return
@@ -117,7 +119,7 @@ async def homework_request(msg: Message):
     # subject searching
     for al in ALL_SUBJECT_ALIASES:
         if al in text:
-            subject = SUBJECTS_FROM_ALIASES_DICT[al]
+            subject: Subject = SUBJECTS_FROM_ALIASES_DICT[al]
             break
     
     # group searching
@@ -136,7 +138,7 @@ f'''Не понял, какая группа предмета {subject.name_ru} 
             return
 
     # time compile
-    now_week, now_weekday = get_now_week_weekday()
+    now_week, now_weekday = get_wwd(msg.date)
     new_week, new_weekday = wd_calc(now_week, now_weekday, subject.weekdays[weekdays_key] if subject.is_grouped else subject.weekdays)
     
     # homework loading 
@@ -147,11 +149,12 @@ f'''Не понял, какая группа предмета {subject.name_ru} 
             f' на {WEEKDAYS_GEN[new_weekday]}{" следующей недели" if new_week > now_week else ""}:\n' +\
             f'{loaded_homework.text} (отправил(а): {loaded_homework.sender})'
     if loaded_homework.attachment:
+        if ',' in loaded_homework.attachment:
+            await msg.answer_media_group(list(map(lambda p: InputMediaPhoto(media=p, caption=answer), loaded_homework.attachment.split(','))))
+            return
         await msg.answer_photo(loaded_homework.attachment, answer)
         return
-    await msg.answer(f'Задание по {subject.name_ru}{f" ({group} группа)" if group else ""}' +\
-                     f' на {WEEKDAYS_GEN[new_weekday]}{" следующей недели" if new_week > now_week else ""}:\n' +\
-                     f'{loaded_homework.text} (отправил(а): {loaded_homework.sender})')
+    await msg.answer(answer)
 
 hw_full_request_regex = r'[Чч]то задали на .+\?$'
 @dp.message(F.text.regexp(hw_full_request_regex))
@@ -160,24 +163,10 @@ async def full_homework_request(msg: Message):
     text_words = text.split()
 
     # time compile
-    weekday = None
-    for i, call in enumerate(WEEKDAYS_CALLS):
-        if call in text:
-            weekday = i
-            break
-    now_week, now_weekday = get_now_week_weekday()
-    if weekday is None:
-        if 'сегодня' in text:
-            weekday = now_weekday
-        elif 'завтра' in text:
-            weekday = wd_up(now_weekday, 1)
-        else:
-            await msg.answer(f'Чтобы узнать дз на весь день, напишите "что задали на [день недели]?"')
-            return
-    if weekday > 4:
-        await msg.answer(f'Очень смешно, но у нас пятидневка')
-        return
-    week = wd_calc(now_week, now_weekday, [weekday])[0]
+    now_week, now_weekday = get_wwd(msg.date)
+    if not (wwd := wd_in_text_master(now_week, now_weekday, text)):
+        msg.answer('Не понял, на какой день нужно задание.')
+    week, weekday = wwd
 
     # answer compile
     subjects_to_load_hw = ALL_TIMETABLES[weekday].subjects
