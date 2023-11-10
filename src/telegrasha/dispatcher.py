@@ -1,3 +1,3 @@
 from aiogram import Dispatcher
 
-dp = Dispatcher()
+dispatcher = Dispatcher()
