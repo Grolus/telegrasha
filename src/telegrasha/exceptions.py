@@ -35,7 +35,8 @@ class HomeworkRequestError(SubjectRequestError):
 class GroupNotFoundError(HomeworkSettingError, HomeworkRequestError):
     @property
     def msg_text(self):
-        return f'''Не понял, какая группа предмета {self.subject} вам нужна. 
+        return f'''Не понял, какая группа предмета {self.subject} вам нужна.
+Первая группа - те, кто у Власовой; Вторая - те, кто у Рыбкиной. 
 Повторите (или измените исходное) сообщение по шаблону: 
 по [предмет] [номер группы] группа ...'''
     

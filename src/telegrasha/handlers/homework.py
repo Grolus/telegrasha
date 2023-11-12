@@ -1,5 +1,6 @@
 
 from datetime import datetime
+from typing import Sequence
 from utils.subject import (
     find_subject,
     ALL_SUBJECT_ALIASES,
@@ -14,7 +15,7 @@ from utils.weekday import (
     wd_calc,
     wd_in_text_master
 )
-from utils.tools import word_to_group, photos_to_str
+from utils.tools import photos_to_str, find_group_in_text
 from utils.constants import WEEKDAYS_CALLS
 from exceptions import (HomeworkSettingError, EmptyHomeworkError, GroupNotFoundError,
                         HomeworkNotFoundError, WeekWeekdayNotFoundError)
@@ -29,7 +30,6 @@ def homework_set_ttt(text: str,
     (`subject`, `group`, `new_week`, `new_weekday`, `is_for_next_week`, `collected_homework`)"""
     text_orig = text
     text = text_orig.lower()
-    text_words = text.split()
     
     # subject searching
     subject, info_end_pos = find_subject(text, return_end_pos=True)
@@ -37,16 +37,10 @@ def homework_set_ttt(text: str,
     # group searchig
     group = 0
     if subject in GROOPED_SUBJECTS:
-        tmp_text = text[info_end_pos:].strip() # текст начиная с конца названия предмета (без пробелов в начале и конце)
-        tmp_text_words = tmp_text.split()
-        if 'груп' in tmp_text_words[1]:
-            if group := word_to_group(tmp_text_words[0]):
-                weekdays_key = group - 1
-                info_end_pos = text.find(tmp_text_words[1]) + len(tmp_text_words[1])
-                pass
-        if not group:
+        group, info_end_pos = find_group_in_text(text, True)
+        if group == 0:
             raise GroupNotFoundError(subject)
-
+        
     # time compile
     now_week, now_weekday = get_wwd(date)
     finded = False
@@ -58,12 +52,12 @@ def homework_set_ttt(text: str,
                 finded = True
                 break
     if not finded:
-        new_week, new_weekday = wd_calc(now_week, now_weekday, subject.weekdays[weekdays_key] if subject.is_grouped else subject.weekdays)
-        print(f'({now_week}, {now_weekday}) -> ({new_week}, {new_weekday})')
+        new_week, new_weekday = wd_calc(now_week, now_weekday, subject.weekdays[group-1] if subject.is_grouped else subject.weekdays)
+        #print(f'({now_week}, {now_weekday}) -> ({new_week}, {new_weekday})')
     is_for_next_week = new_week > now_week
 
     # text compile
-    hw_text = text_orig[info_end_pos:]
+    hw_text = text_orig[info_end_pos:].strip()
 
     # attachment saving
     attachment_str = photos_to_str(attachment)
@@ -72,8 +66,7 @@ def homework_set_ttt(text: str,
     collected_homework = Homework(subject, hw_text, sender, attachment_str)
     if not collected_homework.text and not collected_homework.attachment:
         raise EmptyHomeworkError(subject)
-    if not collected_homework.save(new_week, new_weekday, group):
-        raise HomeworkSettingError(subject)
+    collected_homework.save(new_week, new_weekday, group)
     return (subject, group, new_week, new_weekday, is_for_next_week, collected_homework)
 
 def homework_request_ttt(
@@ -89,7 +82,7 @@ def homework_request_ttt(
     """
     text = text.lower()
     text_words = text.split()
-    is_grooped_in_msg = len(text_words) > 3 and word_to_group(text_words[3])
+
     # subject searching
     for al in ALL_SUBJECT_ALIASES:
         if al in text:
@@ -97,18 +90,15 @@ def homework_request_ttt(
             break
     
     # group searching
-    weekdays_key = None
     group = 0
     if subject in GROOPED_SUBJECTS:
-        if is_grooped_in_msg:
-            if group := word_to_group(text_words[3]):
-                weekdays_key = group - 1
-        if weekdays_key is None:
+        group = find_group_in_text(text)
+        if group == 0:
             raise GroupNotFoundError(subject)
 
     # time compile
     now_week, now_weekday = get_wwd(date)
-    new_week, new_weekday = wd_calc(now_week, now_weekday, subject.weekdays[weekdays_key] if subject.is_grouped else subject.weekdays)
+    new_week, new_weekday = wd_calc(now_week, now_weekday, subject.weekdays[group - 1] if subject.is_grouped else subject.weekdays)
     is_for_next_week = new_week > now_week
 
     # homework loading
@@ -134,20 +124,19 @@ def full_homework_request_ttt(text: str, date: datetime) -> tuple[int, int, bool
     subjects_to_load_hw = ALL_TIMETABLES[weekday].subjects
     homeworks = []
     for sj in subjects_to_load_hw:
-        sj: Subject
-        if sj in GROOPED_SUBJECTS:
+        if isinstance(sj, Sequence):
             homeworks.append([])
-            for i in range(1,3):
+            for i in range(2):
                 try:
-                    hw = sj.load(week, weekday, i)
+                    hw = sj[i].load(week, weekday, i + 1)
                 except HomeworkNotFoundError:
-                    hw = None
+                    hw = Homework(sj[i], is_empty=True)
                 homeworks[-1].append(hw)
         else:
             try:
                 homeworks.append(sj.load(week, weekday))
             except HomeworkNotFoundError:
-                homeworks.append(Homework(sj, '', '', is_empty=True))
+                homeworks.append(Homework(sj, is_empty=True))
 
     return (week, weekday, is_for_next_week, homeworks)
 

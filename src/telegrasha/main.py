@@ -10,7 +10,7 @@ from aiogram.client.session.aiohttp import AiohttpSession
 
 from dispatcher import dispatcher as dp
 from utils.constants import IS_ON_SERVER
-from handler import *
+from handler import *  # noqa: F403
 # log
 logging.basicConfig(level=logging.INFO)
 
@@ -26,4 +26,5 @@ async def main() -> None:
 # run long-polling
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+    logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
     asyncio.run(main())

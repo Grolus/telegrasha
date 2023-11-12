@@ -1,10 +1,12 @@
 import os
 import json
 import re
-from typing import Sequence 
+import logging
+from typing import Sequence
 from config import HOMEWORK_STORAGE_PATH
 from exceptions import HomeworkNotFoundError
 
+EMPTY_HOMEWORK_PLACEHOLDER = 'не сохранено'
 
 class Subject():
     def __init__(self, name_ru: str, weekdays: list | tuple[list], aliases: list[str], name_eng: str):
@@ -16,11 +18,14 @@ class Subject():
     def __str__(self):
         return self.name_ru
     def load(self, week, weekday, group: int=''):
+        logging.log(logging.INFO, f'Trying to load homework for {self.name_eng}; {week=}, {weekday=}, {group=}')
         try:
             with open(f'{HOMEWORK_STORAGE_PATH}{week}/{weekday}/{self.name_eng}{group if group else ""}.json', 'r') as file:
                 loaded = json.load(file)
+                logging.log(logging.INFO, f'✅Succesfully loaded ({loaded=})')
                 return Homework(SUBJECTS_ENGNAME_DICT[loaded['subject_name']], loaded['text'], loaded['sender'], loaded['attachments'])
         except FileNotFoundError:
+            logging.log(logging.INFO, '❌Failed to load')
             raise HomeworkNotFoundError(self)
 
 
@@ -74,7 +79,7 @@ def find_subject(text: str, default=None, return_end_pos: bool=False):
         end_pos = text.find(match_in_text) + len(match_in_text)
         while end_pos < len(text) and text[end_pos] != ' ':
             end_pos += 1
-        return subject, end_pos - 1
+        return subject, end_pos
     return subject
     
 
@@ -103,13 +108,24 @@ def _find_subject(text: str, default=None, return_end_pos: bool=False):
 
 
 class Homework():
-    def __init__(self, subject: Subject, text: str, sender: str, attachment: str='', is_empty: bool=None):
+    def __init__(self, subject: Subject=..., text: str=..., sender: str=..., attachment: str='', is_empty: bool=None):
         self.subject = subject
         self.text = text
         self.sender = sender
         self.attachment = attachment
         self.is_attachment_multiple = ',' in self.attachment
-        self.is_empty = is_empty if not (is_empty is None) else any((text, attachment))
+        self.is_empty = is_empty if not (is_empty is None) else not any((text, attachment))
+
+    def __eq__(self, other):
+        if isinstance(other, Homework):
+            return (self.text == other.text or (other.text is ... or self.text is ...)) and \
+                (self.subject == other.subject or (other.subject is ... or self.text is ...)) and \
+                (self.sender == other.sender or (other.sender is ... or self.text is ...)) and \
+                (self.attachment == other.attachment or (other.attachment is ... or self.text is ...))
+        return False
+
+    def __str__(self):
+        return f'{self.subject}: {self.text} ({self.sender}) {self.attachment}'
 
     def save(self, week, weekday, group=''):
         if str(week) not in os.listdir(HOMEWORK_STORAGE_PATH):
@@ -119,15 +135,17 @@ class Homework():
         with open(f'{HOMEWORK_STORAGE_PATH}{week}/{weekday}/{self.subject.name_eng}{group if group else ""}.json', 'w') as file:
             _dict = {'subject_name': self.subject.name_eng, 'text': self.text, 'sender': self.sender, 'attachments': self.attachment}
             json.dump(_dict, file)
+        logging.log(logging.INFO, f'Saving homework for {self.subject.name_eng}; {week=}, {weekday=}, {group=}')
         return True
-
+    
     def to_line(self, number: int=None, group: int=None):
-        return f'{"❌" if self.is_empty else "✅"}{f"{number}. " if number else ""}{self.subject}{f" {group} группа" if group else ""}' + \
-            f'{f" (с вложением)" if self.attachment else ""}: {self.text if not self.is_empty else "неизвестно"}'
+        return f'{f"{number}. " if number else ""}{"❌" if self.is_empty else "✅"}{self.subject}{f" {group} группа" if group else ""}' + \
+            f'{f" (с вложением🧩)" if self.attachment else ""}: {self.text if not self.is_empty else EMPTY_HOMEWORK_PLACEHOLDER}'
 
 def hw_tuple_to_line(hw_tuple: Sequence[Homework], number: int=None) -> str:
     """Returns 2-lined homework line"""
-    return '\n'.join([Homework.to_line(hw, number if not i else None, i+1) for i, hw in enumerate(hw_tuple)])
+    result = '\n    '.join([hw.to_line(number if not i else None, i+1) for i, hw in enumerate(hw_tuple)])
+    return result
 
 def _subject_identify(obj: Subject | str | Sequence) -> Subject | tuple[Subject]:
     if isinstance(obj, Subject):
@@ -147,6 +165,21 @@ def subject_to_hw_send_line(subject: Subject, week: int, weekday: int, group: in
     else:
         line = f'❌{raw_line} не найдено'
     return line
+
+def compare_homework_lists(first: list, second: list):
+    result = []
+    for i, j in zip(first, second):
+        if not (isinstance(i, Sequence) and isinstance(j, Sequence)) or not (type(i) is type(j)):
+            return False
+        if isinstance(i, Homework):
+            result.append(i == j)
+        else:
+            res1 = []
+            for i1, j1 in zip(i, j):
+                res1.append(i1 == j1)
+            result.append(all(res1))
+    return all(result)
+
 
 
 class Timetable():

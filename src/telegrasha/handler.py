@@ -76,10 +76,11 @@ async def full_homework_request(msg: Message):
         answer = 'Не понял, на какой день нужно задание.'
     except Exception as ex:
         answer = f'Ошибка: {ex}'
+        print(ex.with_traceback())
     else:
-        answer = f"Задание на {result[1]}{' следующей недели' if result[2] else ''}:\n" + '\n'.join(
+        answer = f"Задание на {WEEKDAYS_GENITIVE[result[1]]}{' следующей недели' if result[2] else ''}:\n" + '\n'.join(
             [Homework.to_line(hw, i+1) if not isinstance(hw, Sequence) 
-             else hw_tuple_to_line(i)
+             else hw_tuple_to_line(hw, i+1)
              for i, hw in enumerate(result[3])]
         )
     finally:

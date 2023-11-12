@@ -1,13 +1,29 @@
 
-from aiogram.types import InputMediaPhoto
-
 def is_word_groop_name(word: str):
     return word in ('1', '2') or 'перв' in word or 'втор' in word
 
-def word_to_group(word):
-    if word == '1' or 'перв' in word: return 1
-    if word == '2' or 'втор' in word: return 2
+def find_groupword(text: str):
+    if '1' in text or 'перв' in text: 
+        return 1
+    if '2' in text or 'втор' in text: 
+        return 2
     return 0
+
+def find_group_in_text(text: str, return_end_pos: bool=False):
+    group = 0
+    if group_pos := text.find('груп'):
+        find_in: str = text[:group_pos].strip()
+        group = find_groupword(find_in)
+        if return_end_pos:
+            end_pos = group_pos
+            for s in text[group_pos:]:
+                end_pos += 1
+                if s == ' ':
+                    break
+            return group, end_pos
+        return group
+    return group
+
 
 def find_numbers_in_text(text: str) -> list[int]:
     """Ищет числа в тексте и возвращает их список"""
@@ -30,14 +46,18 @@ def find_numbers_in_text(text: str) -> list[int]:
     return numbers
 
 def photos_to_str(photos: list):
+    if not photos: 
+        return ''
     string = ''
     for i in photos:
         string += i.file_id + ','
-    if string.endswith(','): string = string[:-1]
+    if string.endswith(','): 
+        string = string[:-1]
     return string
 
-def str_to_photos(string_attachment: str, caption: str=None) -> list[InputMediaPhoto]:
+def str_to_photos(string_attachment: str, caption: str=None) -> list:
     """Formats `string_attachment` to list of `InputMediaPhoto` instaces. Sets caption on `caption` if exisits"""
+    from aiogram.types import InputMediaPhoto
     return list(map(
             lambda p: InputMediaPhoto(media=p, caption=caption), 
             string_attachment.split(',')
