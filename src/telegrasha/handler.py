@@ -20,7 +20,7 @@ async def self_call(msg: Message):
     answer = f'Я тут, {result[0]}'
     await msg.reply(answer)
 
-hw_set_regex = r'^' + SELF_CALL_REGEXP + r',? (?:дз |задание )?[пП]о .*[^?]$'
+hw_set_regex = r'^' + SELF_CALL_REGEXP + r',? ?(?:дз |задание )?[пП]о .*[^?]$'
 filter = (F.text.regexp(hw_set_regex) & F.text.func(is_subject_in)) | \
     (F.photo & F.caption.regexp(hw_set_regex) & F.caption.func(is_subject_in))
 @dispatcher.message(filter)
