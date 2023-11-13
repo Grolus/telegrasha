@@ -65,7 +65,7 @@ for s in ALL_SUBJECTS:
 def is_subject_in(text: str): 
     return any([i in text for i in ALL_SUBJECT_ALIASES])
 
-def find_subject(text: str, default=None, return_end_pos: bool=False):
+def find_subject(text: str, default=None, return_end_pos: bool=False) -> Subject | tuple[Subject, int]:
     """Find subject in `text`, if not found return `default`. 
     If `return_end_pos` set on `True`, returns position of last simbol of subject word
     """
@@ -125,7 +125,7 @@ class Homework():
         return False
 
     def __str__(self):
-        return f'{self.subject}: {self.text} ({self.sender}) {self.attachment}'
+        return f'[Hw]{self.subject}: {self.text} ({self.sender}) {self.attachment}'
 
     def save(self, week, weekday, group=''):
         if str(week) not in os.listdir(HOMEWORK_STORAGE_PATH):

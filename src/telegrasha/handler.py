@@ -3,6 +3,7 @@ from dispatcher import dispatcher
 from aiogram import F
 from aiogram.types import Message
 from handlers import *
+from dev_utils.method import dev_method_ttt
 
 from typing import Sequence
 from utils.subject import is_subject_in, Homework, hw_tuple_to_line
@@ -11,7 +12,26 @@ from utils.tools import str_to_photos
 from config import SELF_CALL_REGEXP
 from exceptions import (GroupNotFoundError, HomeworkSettingError,
                         HomeworkNotFoundError, WeekWeekdayNotFoundError, AnecdoteRequestError,
-                        NoAnecdotesError, AnecdoteNotFoundError, AnecdoteDeletionNumberError)
+                        NoAnecdotesError, AnecdoteNotFoundError, AnecdoteDeletionNumberError,
+                        DevUtilsError, RequestError, Error)
+
+
+devut_method_regex = r'^!метод.*$'
+@dispatcher.message(F.text.regexp(devut_method_regex))
+@dispatcher.edited_message(F.text.regexp(devut_method_regex))
+async def dev_method(msg: Message):
+    try:
+        result = dev_method_ttt(msg.text)
+    except DevUtilsError as ex:
+        answer = ex.msg_text
+    except RequestError as ex:
+        answer = ex.msg_text
+    except TypeError as ex:
+        answer = f'Ошибка: {ex}'
+    else:
+        answer = f'{result}'
+    finally:
+        await msg.answer(answer)
 
 @dispatcher.message(F.text.lower() == 'аркаша?')
 async def self_call(msg: Message):
@@ -33,6 +53,8 @@ async def homework_set(msg: Message):
                                   date=msg.date)
     except HomeworkSettingError as ex:
         answer = ex.msg_text
+    except HomeworkNotFoundError as ex:
+        answer = ex.msg_text
     except Exception as ex:
         answer = f'Ошибка: {ex}'
     else:
@@ -46,6 +68,7 @@ hw_request_regex = r'[Чч]то (?:по|на) .*\?$'
 @dispatcher.message(F.text.regexp(hw_request_regex) & F.text.func(is_subject_in))
 @dispatcher.edited_message(F.text.regexp(hw_request_regex))
 async def homework_request(msg: Message):
+    attachment = None
     try:
         result = homework_request_ttt(msg.text, date=msg.date)
     except GroupNotFoundError as ex:

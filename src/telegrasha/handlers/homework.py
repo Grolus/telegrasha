@@ -16,9 +16,9 @@ from utils.weekday import (
     wd_in_text_master
 )
 from utils.tools import photos_to_str, find_group_in_text
-from utils.constants import WEEKDAYS_CALLS
+from utils.constants import WEEKDAYS_CALLS, OLD_HOMEWORK_WORDS
 from exceptions import (HomeworkSettingError, EmptyHomeworkError, GroupNotFoundError,
-                        HomeworkNotFoundError, WeekWeekdayNotFoundError)
+                        HomeworkNotFoundError, WeekWeekdayNotFoundError, OldHomeworkNotFoundError)
 
 def homework_set_ttt(text: str, 
                      date: datetime, 
@@ -58,6 +58,13 @@ def homework_set_ttt(text: str,
 
     # text compile
     hw_text = text_orig[info_end_pos:].strip()
+    for old_word in OLD_HOMEWORK_WORDS:
+        if hw_text == old_word:
+            old_week, old_weekday = wd_calc(now_week, now_weekday, subject.weekdays, -1, 0)
+            try:
+                collected_homework = subject.load(old_week, old_weekday, group)
+            except HomeworkNotFoundError:
+                raise OldHomeworkNotFoundError(subject, old_weekday, old_week < now_week, group)
 
     # attachment saving
     attachment_str = photos_to_str(attachment)
