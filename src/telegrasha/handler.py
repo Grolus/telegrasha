@@ -46,6 +46,8 @@ filter = (F.text.regexp(hw_set_regex) & F.text.func(is_subject_in)) | \
 @dispatcher.message(filter)
 @dispatcher.edited_message(filter)
 async def homework_set(msg: Message):
+    import pprint
+    pprint.pprint(msg.photo)
     try:
         result = homework_set_ttt(msg.text or msg.caption, 
                                   attachment=msg.photo, 
@@ -108,6 +110,10 @@ async def full_homework_request(msg: Message):
         )
     finally:
         await msg.answer(answer)
+
+@dispatcher.message(F.text.regexp(r'^' + SELF_CALL_REGEXP[:-1] + r' реши .*(?: [0-9]{1-4})+'))
+async def gdz_request(msg: Message):
+    ...
 
 @dispatcher.message(F.text.regexp(r'[Аа]некдот(?: ?[-:].+)?$', flags=16))
 async def anecdote_set(msg: Message):

@@ -46,6 +46,8 @@ def find_numbers_in_text(text: str) -> list[int]:
     return numbers
 
 def photos_to_str(photos: list):
+    import pprint
+    pprint.pprint(photos)
     if not photos: 
         return ''
     string = ''

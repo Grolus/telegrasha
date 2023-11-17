@@ -58,6 +58,13 @@ def homework_set_ttt(text: str,
 
     # text compile
     hw_text = text_orig[info_end_pos:].strip()
+
+
+    # attachment saving
+    attachment_str = photos_to_str(attachment)
+
+    # homework saving
+    collected_homework = Homework(subject, hw_text, sender, attachment_str)
     for old_word in OLD_HOMEWORK_WORDS:
         if hw_text == old_word:
             old_week, old_weekday = wd_calc(now_week, now_weekday, subject.weekdays, -1, 0)
@@ -66,11 +73,7 @@ def homework_set_ttt(text: str,
             except HomeworkNotFoundError:
                 raise OldHomeworkNotFoundError(subject, old_weekday, old_week < now_week, group)
 
-    # attachment saving
-    attachment_str = photos_to_str(attachment)
 
-    # homework saving
-    collected_homework = Homework(subject, hw_text, sender, attachment_str)
     if not collected_homework.text and not collected_homework.attachment:
         raise EmptyHomeworkError(subject)
     collected_homework.save(new_week, new_weekday, group)

@@ -135,7 +135,7 @@ class Homework():
         with open(f'{HOMEWORK_STORAGE_PATH}{week}/{weekday}/{self.subject.name_eng}{group if group else ""}.json', 'w') as file:
             _dict = {'subject_name': self.subject.name_eng, 'text': self.text, 'sender': self.sender, 'attachments': self.attachment}
             json.dump(_dict, file)
-        logging.log(logging.INFO, f'Saving homework for {self.subject.name_eng}; {week=}, {weekday=}, {group=}')
+        logging.log(logging.INFO, f'Saved homework for {self.subject.name_eng}; {week=}, {weekday=}, {group=}; {self}')
         return True
     
     def to_line(self, number: int=None, group: int=None):
