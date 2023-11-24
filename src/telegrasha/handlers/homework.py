@@ -53,7 +53,7 @@ def homework_set_ttt(text: str,
                 break
     if not finded:
         new_week, new_weekday = wd_calc(now_week, now_weekday, subject.weekdays[group-1] if subject.is_grouped else subject.weekdays)
-        #print(f'({now_week}, {now_weekday}) -> ({new_week}, {new_weekday})')
+    print(f'({now_week}, {now_weekday}) -> ({new_week}, {new_weekday})')
     is_for_next_week = new_week > now_week
 
     # text compile
@@ -108,7 +108,8 @@ def homework_request_ttt(
 
     # time compile
     now_week, now_weekday = get_wwd(date)
-    new_week, new_weekday = wd_calc(now_week, now_weekday, subject.weekdays[group - 1] if subject.is_grouped else subject.weekdays)
+    new_week, new_weekday = wd_calc(now_week, now_weekday, 
+                                    subject.weekdays[group - 1] if subject.is_grouped else subject.weekdays)
     is_for_next_week = new_week > now_week
 
     # homework loading

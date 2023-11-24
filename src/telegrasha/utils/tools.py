@@ -50,11 +50,13 @@ def photos_to_str(photos: list):
     pprint.pprint(photos)
     if not photos: 
         return ''
+    return photos[0].file_id
     string = ''
     for i in photos:
         string += i.file_id + ','
     if string.endswith(','): 
         string = string[:-1]
+    string = ','.join(list(set(string.split(','))))
     return string
 
 def str_to_photos(string_attachment: str, caption: str=None) -> list:

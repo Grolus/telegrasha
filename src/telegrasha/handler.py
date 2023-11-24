@@ -3,8 +3,8 @@ from dispatcher import dispatcher
 from aiogram import F
 from aiogram.types import Message
 from handlers import *
-from dev_utils.method import dev_method_ttt
-
+from dev_utils import dev_method_ttt, dev_time_ttt
+import pprint
 from typing import Sequence
 from utils.subject import is_subject_in, Homework, hw_tuple_to_line
 from utils.constants import WEEKDAYS_GENITIVE
@@ -33,6 +33,17 @@ async def dev_method(msg: Message):
     finally:
         await msg.answer(answer)
 
+@dispatcher.message(F.text.regexp(r'^!время.*$'))
+async def dev_time(msg: Message):
+    try:
+        result = dev_time_ttt(msg.text, msg.date)
+    except Exception as ex:
+        answer = f'Ошибка: {ex}'
+    else:
+        answer = f'{result[0].isoformat(sep=" ")}.\nНеделя: {result[1]}\nДень: {result[2]}'
+    finally:
+        await msg.answer(answer)
+
 @dispatcher.message(F.text.lower() == 'аркаша?')
 async def self_call(msg: Message):
     result = self_call_ttt(msg.text, 
@@ -46,7 +57,7 @@ filter = (F.text.regexp(hw_set_regex) & F.text.func(is_subject_in)) | \
 @dispatcher.message(filter)
 @dispatcher.edited_message(filter)
 async def homework_set(msg: Message):
-    import pprint
+
     pprint.pprint(msg.photo)
     try:
         result = homework_set_ttt(msg.text or msg.caption, 
@@ -151,6 +162,4 @@ async def anecdote_deletion_request(msg: Message):
     else:
         answer = f'Успешно удалён анекдот под номером {result[0]}.'
     await msg.answer(answer)
-
-
 
