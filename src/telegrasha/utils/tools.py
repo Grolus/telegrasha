@@ -57,7 +57,7 @@ def photos_to_str(photos: list):
     if string.endswith(','): 
         string = string[:-1]
     string = ','.join(list(set(string.split(','))))
-    return string
+    return string 
 
 def str_to_photos(string_attachment: str, caption: str=None) -> list:
     """Formats `string_attachment` to list of `InputMediaPhoto` instaces. Sets caption on `caption` if exisits"""

@@ -61,6 +61,7 @@ def homework_set_ttt(text: str,
 
 
     # attachment saving
+    
     attachment_str = photos_to_str(attachment)
 
     # homework saving

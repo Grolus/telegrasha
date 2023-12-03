@@ -34,7 +34,9 @@ def get_now_week_weekday():
 
 def get_week_weekday_from_datetime(dt: datetime.datetime):
     tm_time = time.gmtime(dt.timestamp())
-    return tm_time.tm_yday // 7 + 1, tm_time.tm_wday
+    w, wd = tm_time.tm_yday // 7 + 1, tm_time.tm_wday
+    if wd > 4: w -= 1
+    return w, wd
 
 def wd_in_text_master(
         now_week: int,

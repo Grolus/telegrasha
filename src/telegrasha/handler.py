@@ -61,9 +61,10 @@ async def homework_set(msg: Message):
     pprint.pprint(msg.photo)
     try:
         result = homework_set_ttt(msg.text or msg.caption, 
-                                  attachment=msg.photo, 
+                                  attachment=msg.photo,
                                   sender=msg.from_user.full_name,
                                   date=msg.date)
+        msg.reply_to_message()
     except HomeworkSettingError as ex:
         answer = ex.msg_text
     except HomeworkNotFoundError as ex:
