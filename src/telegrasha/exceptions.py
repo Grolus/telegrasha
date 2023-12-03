@@ -102,8 +102,8 @@ class MethodArgsInvalidError(MethodError):
         self.extra_message = extra_message
     @property
     def msg_text(self):
-        return f'{self.arg_word} {f"({self.pos or ""}-й аргумент) "}' + \
-            f'должен быть конвертируемым в {self.needed_type}.{f" ({self.extra_message or ""})" if self.extra_message else ""}'
+        return f'{self.arg_word} {f"({self.pos}-й аргумент) " if self.pos else ""}' + \
+            f'должен быть конвертируемым в {self.needed_type}.{f" ({self.extra_message})" if self.extra_message else ""}'
 class NoMethodError(MethodError):
     @property
     def msg_text(self):
