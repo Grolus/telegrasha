@@ -14,6 +14,7 @@ from exceptions import (GroupNotFoundError, HomeworkSettingError,
                         HomeworkNotFoundError, WeekWeekdayNotFoundError, AnecdoteRequestError,
                         NoAnecdotesError, AnecdoteNotFoundError, AnecdoteDeletionNumberError,
                         DevUtilsError, RequestError, Error)
+import sys
 
 
 devut_method_regex = r'^!метод.*$'
@@ -64,13 +65,13 @@ async def homework_set(msg: Message):
                                   attachment=msg.photo,
                                   sender=msg.from_user.full_name,
                                   date=msg.date)
-        msg.reply_to_message()
+
     except HomeworkSettingError as ex:
         answer = ex.msg_text
     except HomeworkNotFoundError as ex:
         answer = ex.msg_text
     except Exception as ex:
-        answer = f'Ошибка: {ex}'
+        answer = f'Ошибка ({msg.chat.id}): {ex if msg.chat.id != 1122505805 else "+" + str(ex.with_traceback(sys.exc_info()[2]))}'
     else:
         answer = f'Сохранил задание по {result[0].name_ru}{f" ({result[1]} группа)" if result[1] else ""}' + \
                  f' на {WEEKDAYS_GENITIVE[result[3]]}{" следующей недели" if result[4] else ""}' + \
