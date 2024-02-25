@@ -23,7 +23,6 @@ class HomeworkSettingError(SubjectRequestError):
         return f'Не удалось сохранить дз по {self.subject.name_ru}'
     pass
 class EmptyHomeworkError(HomeworkSettingError):
-    """Homework can`t be empty"""
     @property
     def msg_text(self):
         return f'Не сохранил пустое дз по {self.subject.name_ru}'
@@ -55,7 +54,9 @@ class OldHomeworkNotFoundError(HomeworkNotFoundError):
             f' Искал его на {WEEKDAYS_GENITIVE[self.old_weekday]} {"прошлой" if self.is_for_last_week else "этой"} недели. ' + \
             f'Сохраните его вручную, пожалуйста.'
 class WeekWeekdayNotFoundError(RequestError):
-    pass
+    msg_text = 'Не понял, на какой день нужно задание.'
+class InvalidWeekday(RequestError):
+    msg_text = f"Напишите подходящий день недели."
 class AnecdoteError(Error):
     pass
 class NoAnecdotesError(AnecdoteError):

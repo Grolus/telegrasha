@@ -1,9 +1,9 @@
 import os
 import json
 import re
-import logging
 from typing import Sequence
 from config import HOMEWORK_STORAGE_PATH
+from logers import homework as loger
 from exceptions import HomeworkNotFoundError
 
 EMPTY_HOMEWORK_PLACEHOLDER = 'не сохранено'
@@ -18,14 +18,14 @@ class Subject():
     def __str__(self):
         return self.name_ru
     def load(self, week, weekday, group: int=''):
-        logging.log(logging.INFO, f'Trying to load homework for {self.name_eng}; {week=}, {weekday=}, {group=}')
+        loger.info(f'Trying to load homework for {self.name_eng}; {week=}, {weekday=}, {group=}')
         try:
             with open(f'{HOMEWORK_STORAGE_PATH}{week}/{weekday}/{self.name_eng}{group if group else ""}.json', 'r') as file:
                 loaded = json.load(file)
-                logging.log(logging.INFO, f'✅Succesfully loaded ({loaded=})')
+                loger.info(f'✅Succesfully loaded ({loaded=})')
                 return Homework(SUBJECTS_ENGNAME_DICT[loaded['subject_name']], loaded['text'], loaded['sender'], loaded['attachments'])
         except FileNotFoundError:
-            logging.log(logging.INFO, '❌Failed to load')
+            loger.info('❌Failed to load')
             raise HomeworkNotFoundError(self)
 
 
@@ -106,9 +106,10 @@ def _find_subject(text: str, default=None, return_end_pos: bool=False):
     return default
 
 
-
 class Homework():
-    def __init__(self, subject: Subject=..., text: str=..., sender: str=..., attachment: str='', is_empty: bool=None):
+    def __init__(self, 
+                 subject: Subject=..., text: str=..., sender: str=..., # для сравнений неполных дз
+                 attachment: str='', is_empty: bool=None): 
         self.subject = subject
         self.text = text
         self.sender = sender
@@ -135,7 +136,7 @@ class Homework():
         with open(f'{HOMEWORK_STORAGE_PATH}{week}/{weekday}/{self.subject.name_eng}{group if group else ""}.json', 'w') as file:
             _dict = {'subject_name': self.subject.name_eng, 'text': self.text, 'sender': self.sender, 'attachments': self.attachment}
             json.dump(_dict, file)
-        logging.log(logging.INFO, f'Saved homework for {self.subject.name_eng}; {week=}, {weekday=}, {group=}; {self}')
+        loger.info(f'Saved homework for {self.subject.name_eng}; {week=}, {weekday=}, {group=}; {self}')
         return True
     
     def to_line(self, number: int=None, group: int=None):

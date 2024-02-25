@@ -3,6 +3,7 @@
 import random
 from utils.anecdote import Anecdote
 from utils.tools import find_numbers_in_text
+from logers import anecdote as loger
 from exceptions import AnecdoteRequestError, NoAnecdotesError, AnecdoteNotFoundError, AnecdoteDeletionNumberError
 
 
@@ -49,5 +50,6 @@ def anecdote_deletion_request_ttt(text: str):
         raise AnecdoteDeletionNumberError()
     if not Anecdote.delete(number):
         raise AnecdoteNotFoundError(number)
+    
     return tuple(number)
 

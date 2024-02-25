@@ -1,7 +1,7 @@
 """Utils for working with weeks and weekdays"""
 import time
 import datetime
-from .constants import WEEKDAYS_CALLS
+from .constants import WEEKDAYS_CALLS, IS_ON_SERVER
 
 def wd_up(weekday: int, d: int, week: int=None):
     """Изменяет день недели `weekday` на число `d`. Изменяет неделю `week`, если она задана"""
@@ -33,9 +33,10 @@ def get_now_week_weekday():
     return t.tm_yday // 7 + 1, t.tm_wday
 
 def get_week_weekday_from_datetime(dt: datetime.datetime):
-    tm_time = time.gmtime(dt.timestamp())
+    tm_time = time.gmtime(dt.timestamp() + 21600)
     w, wd = tm_time.tm_yday // 7 + 1, tm_time.tm_wday
     if wd > 4: w -= 1
+    if wd == 5 and IS_ON_SERVER: w += 1 
     return w, wd
 
 def wd_in_text_master(

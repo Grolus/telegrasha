@@ -4,7 +4,6 @@ from aiogram import F
 from aiogram.types import Message
 from handlers import *
 from dev_utils import dev_method_ttt, dev_time_ttt
-import pprint
 from typing import Sequence
 from utils.subject import is_subject_in, Homework, hw_tuple_to_line
 from utils.constants import WEEKDAYS_GENITIVE
@@ -58,8 +57,6 @@ filter = (F.text.regexp(hw_set_regex) & F.text.func(is_subject_in)) | \
 @dispatcher.message(filter)
 @dispatcher.edited_message(filter)
 async def homework_set(msg: Message):
-
-    pprint.pprint(msg.photo)
     try:
         result = homework_set_ttt(msg.text or msg.caption, 
                                   attachment=msg.photo,
@@ -107,11 +104,10 @@ async def homework_request(msg: Message):
 hw_full_request_regex = r'[Чч]то задали на .+\?$'
 @dispatcher.message(F.text.regexp(hw_full_request_regex))
 async def full_homework_request(msg: Message):
-    answer = '-'
     try:
         result = full_homework_request_ttt(msg.text, date=msg.date)
-    except WeekWeekdayNotFoundError:
-        answer = 'Не понял, на какой день нужно задание.'
+    except Error:
+        answer = msg.text
     except Exception as ex:
         answer = f'Ошибка: {ex}'
         print(ex.with_traceback())

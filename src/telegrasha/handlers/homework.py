@@ -18,7 +18,8 @@ from utils.weekday import (
 from utils.tools import photos_to_str, find_group_in_text
 from utils.constants import WEEKDAYS_CALLS, OLD_HOMEWORK_WORDS
 from exceptions import (HomeworkSettingError, EmptyHomeworkError, GroupNotFoundError,
-                        HomeworkNotFoundError, WeekWeekdayNotFoundError, OldHomeworkNotFoundError)
+                        HomeworkNotFoundError, WeekWeekdayNotFoundError, OldHomeworkNotFoundError,
+                        InvalidWeekday)
 
 def homework_set_ttt(text: str, 
                      date: datetime, 
@@ -59,9 +60,7 @@ def homework_set_ttt(text: str,
     # text compile
     hw_text = text_orig[info_end_pos:].strip()
 
-
     # attachment saving
-    
     attachment_str = photos_to_str(attachment)
 
     # homework saving
@@ -131,6 +130,8 @@ def full_homework_request_ttt(text: str, date: datetime) -> tuple[int, int, bool
         raise WeekWeekdayNotFoundError()
     week, weekday = wwd
     is_for_next_week = week > now_week
+    if weekday > 4:
+        raise InvalidWeekday()
 
     # answer compile
     subjects_to_load_hw = ALL_TIMETABLES[weekday].subjects
